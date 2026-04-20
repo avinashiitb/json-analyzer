@@ -9,11 +9,27 @@ function setupPTYManager(mainWindow) {
   const shell = os.platform() === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash';
 
   ipcMain.on('terminal:create', (event, id) => {
+    const sender = event.sender;
+    const sendData = (msg) => {
+      try {
+        if (!sender.isDestroyed()) sender.send(`terminal:data:${id}`, msg);
+      } catch (e) {}
+    };
+
     if (terminals.has(id)) {
-      console.warn(`Terminal ${id} already exists.`);
-      return;
+      sendData(`\r\n\x1b[33m[Backend] Reconnecting orphaned PTY for ${id}...\x1b[0m\r\n`);
+      const term = terminals.get(id);
+      term.sendData = sendData;
+      
+      if (term.history) {
+        sendData(term.history);
+      } else {
+        sendData(`\r\n\x1b[33m[Backend] History was entirely empty!\x1b[0m\r\n`);
+      }
+      return; 
     }
 
+    sendData(`\r\n\x1b[33m[Backend] Creating pristine PTY for ${id}...\x1b[0m\r\n`);
     const ptyProcess = pty.spawn(shell, [], {
       name: 'xterm-color',
       cols: 80,
@@ -22,36 +38,45 @@ function setupPTYManager(mainWindow) {
       env: process.env
     });
 
-    // Stream output directly to the renderer
+    const termObj = {
+      pty: ptyProcess,
+      history: '',
+      sendData: sendData
+    };
+    const MAX_HISTORY = 100000;
+
     ptyProcess.onData((data) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send(`terminal:data:${id}`, data);
+      termObj.history += data;
+      if (termObj.history.length > MAX_HISTORY) {
+        termObj.history = termObj.history.slice(-MAX_HISTORY);
       }
+      if (termObj.sendData) termObj.sendData(data);
     });
 
     ptyProcess.onExit(({ exitCode, signal }) => {
-      console.log(`Terminal ${id} exited with code ${exitCode} and signal ${signal}`);
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send(`terminal:data:${id}`, `\r\n[Process exited with code ${exitCode}]\r\n`);
+      if (termObj.sendData) {
+        termObj.sendData(`\r\n\x1b[31m[Backend] Process exited artificially (code ${exitCode}).\x1b[0m\r\n`);
       }
-      terminals.delete(id);
+      if (terminals.get(id)?.pty === ptyProcess) {
+        terminals.delete(id);
+      }
     });
 
-    terminals.set(id, ptyProcess);
+    terminals.set(id, termObj);
   });
 
   ipcMain.on('terminal:input', (event, { id, data }) => {
-    const ptyProcess = terminals.get(id);
-    if (ptyProcess) {
-      ptyProcess.write(data);
+    const term = terminals.get(id);
+    if (term && term.pty) {
+      term.pty.write(data);
     }
   });
 
   ipcMain.on('terminal:resize', (event, { id, cols, rows }) => {
-    const ptyProcess = terminals.get(id);
-    if (ptyProcess) {
+    const term = terminals.get(id);
+    if (term && term.pty) {
       try {
-        ptyProcess.resize(cols, rows);
+        term.pty.resize(cols, rows);
       } catch (err) {
         console.error(`Failed to resize terminal ${id}:`, err);
       }
@@ -59,9 +84,9 @@ function setupPTYManager(mainWindow) {
   });
 
   ipcMain.on('terminal:dispose', (event, id) => {
-    const ptyProcess = terminals.get(id);
-    if (ptyProcess) {
-      ptyProcess.kill();
+    const term = terminals.get(id);
+    if (term && term.pty) {
+      try { term.pty.kill(); } catch (e) {}
       terminals.delete(id);
     }
   });
