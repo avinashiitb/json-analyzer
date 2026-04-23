@@ -29,8 +29,8 @@ function setupPTYManager(mainWindow) {
       return; 
     }
 
-    sendData(`\r\n\x1b[33m[Backend] Creating pristine PTY for ${id}...\x1b[0m\r\n`);
-    const ptyProcess = pty.spawn(shell, [], {
+    const shellArgs = os.platform() === 'win32' ? [] : ['-l'];
+    const ptyProcess = pty.spawn(shell, shellArgs, {
       name: 'xterm-color',
       cols: 80,
       rows: 24,

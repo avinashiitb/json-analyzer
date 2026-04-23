@@ -8,7 +8,7 @@ function App() {
   const ObjectUrlId = () => Math.random().toString(36).substr(2, 9);
   
   const [isReady, setIsReady] = useState(false);
-  const [fileName, setFileName] = useState('Terminal');
+  const [fileName, setFileName] = useState('Promptly');
   const [commands, setCommands] = useState([{ id: ObjectUrlId(), text: '' }]);
   const [leftPaneWidth, setLeftPaneWidth] = useState(50);
   const isDragging = useRef(false);
@@ -108,7 +108,7 @@ function App() {
       const updatedContents = {
         version: "1.0.0",
         time: Date.now(),
-        blocks: [{ type: "terminal-scratchpad", data: payloadData }],
+        blocks: [{ type: "promptly", data: payloadData }],
         parent_file: fileId,
         _id: contentDoc?._id,
       };

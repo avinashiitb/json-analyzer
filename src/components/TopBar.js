@@ -6,7 +6,7 @@ function TopBar({ fileName, isReady }) {
       <div className="topbar-left">
         <div className="editor-label">
           <i className="ri-terminal-box-fill"></i>
-          <span>TERMINAL</span>
+          <span>PROMPTLY</span>
         </div>
         <div className="vertical-divider"></div>
         <div className="file-info">
