@@ -318,3 +318,100 @@ html {
   height: 100%;
   width: 100%;
 }
+
+/* Light Theme Overrides */
+.light-theme {
+  background-color: #ffffff;
+  color: #111827;
+}
+
+.light-theme .terminal-topbar {
+  background-color: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.light-theme .editor-label {
+  color: #4b5563;
+}
+
+.light-theme .vertical-divider {
+  background-color: #d1d5db;
+}
+
+.light-theme .file-info {
+  color: #374151;
+}
+
+.light-theme .status-indicator {
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.light-theme .workspace {
+  background-color: #ffffff;
+}
+
+.light-theme .left-pane {
+  background-color: #f9fafb;
+}
+
+.light-theme .pane-resizer {
+  background-color: #e5e7eb;
+  border-left-color: #f3f4f6;
+  border-right-color: #d1d5db;
+}
+
+.light-theme .pane-resizer::after {
+  color: #9ca3af;
+}
+
+.light-theme .scratchpad-header {
+  color: #6b7280;
+}
+
+.light-theme .scratchpad-textarea {
+  color: #111827;
+}
+
+.light-theme .scratchpad-textarea::placeholder {
+  color: #9ca3af;
+}
+
+.light-theme .commands-list::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+}
+
+.light-theme .command-block {
+  background-color: #ffffff;
+  border-color: #e5e7eb;
+}
+
+.light-theme .command-actions {
+  background-color: #f3f4f6;
+  border-bottom-color: #e5e7eb;
+}
+
+.light-theme .command-number {
+  color: #6b7280;
+}
+
+.light-theme .command-title-input:focus {
+  color: #111827;
+  border-bottom-color: #d1d5db;
+}
+
+.light-theme .command-title-input::placeholder {
+  color: #9ca3af;
+}
+
+.light-theme .icon-btn {
+  color: #6b7280;
+}
+
+.light-theme .icon-btn:hover {
+  background-color: #e5e7eb;
+}
+
+.light-theme .add-command-btn {
+  border-color: #d1d5db;
+}

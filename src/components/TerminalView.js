@@ -4,10 +4,29 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 
-function TerminalView({ sessionId, setIsReady }) {
+function TerminalView({ sessionId, setIsReady, theme }) {
   const terminalRef = useRef(null);
   const termInstance = useRef(null);
   const fitAddon = useRef(null);
+
+  const themeRef = useRef(theme);
+
+  useEffect(() => {
+    themeRef.current = theme;
+    if (termInstance.current) {
+      termInstance.current.options.theme = theme === 'light-theme' ? {
+        background: '#ffffff',
+        foreground: '#111827',
+        cursor: '#111827',
+        selectionBackground: '#e5e7eb',
+      } : {
+        background: '#1e1e1e',
+        foreground: '#d4d4d4',
+        cursor: '#ffffff',
+        selectionBackground: '#264F78',
+      };
+    }
+  }, [theme]);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -15,7 +34,12 @@ function TerminalView({ sessionId, setIsReady }) {
     // Initialize Xterm
     const term = new Terminal({
       cursorBlink: true,
-      theme: {
+      theme: themeRef.current === 'light-theme' ? {
+        background: '#ffffff',
+        foreground: '#111827',
+        cursor: '#111827',
+        selectionBackground: '#e5e7eb',
+      } : {
         background: '#1e1e1e',
         foreground: '#d4d4d4',
         cursor: '#ffffff',

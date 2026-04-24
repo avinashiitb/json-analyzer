@@ -11,6 +11,7 @@ function App() {
   const [fileName, setFileName] = useState('Promptly');
   const [commands, setCommands] = useState([{ id: ObjectUrlId(), text: '' }]);
   const [leftPaneWidth, setLeftPaneWidth] = useState(50);
+  const [theme, setTheme] = useState('dark-theme');
   const isDragging = useRef(false);
 
   // Persistence States
@@ -86,6 +87,7 @@ function App() {
             if (savedData && typeof savedData === 'object') {
               if (savedData.commands && Array.isArray(savedData.commands)) setCommands(savedData.commands);
               if (savedData.leftPaneWidth) setLeftPaneWidth(savedData.leftPaneWidth);
+              if (savedData.theme) setTheme(savedData.theme);
             }
           }
         } catch (err) {
@@ -104,7 +106,7 @@ function App() {
 
   const handleSave = useCallback(async () => {
     if (window.pluginAPI && window.pluginAPI.updateDocument && fileId && isDataLoaded) {
-      const payloadData = { commands, leftPaneWidth };
+      const payloadData = { commands, leftPaneWidth, theme };
       const updatedContents = {
         version: "1.0.0",
         time: Date.now(),
@@ -119,7 +121,7 @@ function App() {
         console.error('Save error:', err);
       }
     }
-  }, [commands, leftPaneWidth, fileId, contentDoc, isDataLoaded]);
+  }, [commands, leftPaneWidth, theme, fileId, contentDoc, isDataLoaded]);
 
   // Command binding for manual save (Cmd/Ctrl + S)
   useEffect(() => {
@@ -147,11 +149,51 @@ function App() {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [commands, leftPaneWidth, handleSave, isDataLoaded]);
+  }, [commands, leftPaneWidth, theme, handleSave, isDataLoaded]);
+
+  const handleExportDS = () => {
+    try {
+      const payload = JSON.stringify({
+        _id: contentDoc?._id || `promptly-${Date.now()}`,
+        version: contentDoc?.version || 1,
+        time: Date.now(),
+        parent_file: fileId || "standalone-export",
+        blocks: [
+          {
+            type: "promptly",
+            data: { commands, leftPaneWidth }
+          }
+        ],
+        createdAt: contentDoc?.createdAt || Date.now(),
+        updatedAt: Date.now(),
+        fileType: "promptly"
+      }, null, 2);
+
+      const blob = new Blob([payload], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safeName = fileName ? fileName.split('.')[0] : 'export';
+      a.download = `${safeName}.ds`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      if (window.pluginAPI && window.pluginAPI.notify) {
+        window.pluginAPI.notify("Exported successfully", "success");
+      }
+    } catch (err) {
+      console.error("Export failed:", err);
+      if (window.pluginAPI && window.pluginAPI.notify) {
+        window.pluginAPI.notify("Export failed", "error");
+      }
+    }
+  };
 
   return (
-    <div className="App dark-theme">
-      <TopBar fileName={fileName} isReady={isReady} />
+    <div className={`App ${theme}`}>
+      <TopBar fileName={fileName} isReady={isReady} onExportDS={handleExportDS} theme={theme} setTheme={setTheme} />
 
       <div className="workspace">
         <Scratchpad 
@@ -165,7 +207,7 @@ function App() {
         <div className="pane-resizer" onMouseDown={handleMouseDown}></div>
         
         <div className="right-pane" style={{ width: `${100 - leftPaneWidth}%`, flex: 'none' }}>
-          <TerminalView sessionId={sessionId} setIsReady={setIsReady} />
+          <TerminalView sessionId={sessionId} setIsReady={setIsReady} theme={theme} />
         </div>
       </div>
     </div>
