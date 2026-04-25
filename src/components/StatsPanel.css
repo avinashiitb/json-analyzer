@@ -1,0 +1,66 @@
+.stats-panel {
+  padding: 10px;
+  background-color: var(--bg-secondary, #2d2d2d);
+  border-top: 1px solid var(--border-color, #444);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-color, #ddd);
+}
+
+.stats-title {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 10px;
+  color: var(--text-muted, #999);
+}
+
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-label {
+  color: var(--text-muted, #aaa);
+}
+
+.stat-value {
+  font-weight: 500;
+  color: var(--text-highlight, #4fc1ff);
+}
+
+.invalid-json .stat-value {
+  color: var(--text-warning, #d7ba7d);
+}
+
+/* Light theme overrides */
+.light-theme .stats-panel {
+  background-color: #f5f5f5;
+  border-top: 1px solid #ddd;
+  color: #333;
+}
+
+.light-theme .stats-title {
+  color: #666;
+}
+
+.light-theme .stat-label {
+  color: #555;
+}
+
+.light-theme .stat-value {
+  color: #0066cc;
+}
+
+.light-theme .invalid-json .stat-value {
+  color: #b8860b;
+}

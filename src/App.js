@@ -1,22 +1,33 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import './App.css';
 import TopBar from './components/TopBar';
-import Scratchpad from './components/Scratchpad';
-import TerminalView from './components/TerminalView';
+import EditorPanel from './components/EditorPanel';
+import DiffViewer from './components/DiffViewer';
+import { beautify, minify } from './utils/jsonUtils';
 
 function App() {
   const ObjectUrlId = () => Math.random().toString(36).substr(2, 9);
   
-  const [isReady, setIsReady] = useState(false);
-  const [fileName, setFileName] = useState('Promptly');
-  const [commands, setCommands] = useState([{ id: ObjectUrlId(), text: '' }]);
-  const [leftPaneWidth, setLeftPaneWidth] = useState(50);
+  const [fileName, setFileName] = useState('Compare Tool');
   const [theme, setTheme] = useState('dark-theme');
+  const [leftPaneWidth, setLeftPaneWidth] = useState(50);
   const isDragging = useRef(false);
+
+  // Editor states
+  const [leftContent, setLeftContent] = useState('{\n  "example": "paste JSON here"\n}');
+  const [rightContent, setRightContent] = useState('{\n  "example": "paste JSON here"\n}');
+  const [isDiffMode, setIsDiffMode] = useState(false);
+  const [isInlineDiff, setIsInlineDiff] = useState(false);
+
+  // Metrics state
+  const [leftMetrics, setLeftMetrics] = useState(null);
+  const [rightMetrics, setRightMetrics] = useState(null);
 
   // Persistence States
   const [contentDoc, setContentDoc] = useState(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  const workerRef = useRef(null);
 
   const getFileId = () => {
     let id = window.pluginAPI?.context?.fileId;
@@ -29,12 +40,43 @@ function App() {
         id = hashParams.get("fileId");
       }
     } catch (e) { }
-    return id || `term-${ObjectUrlId()}`;
+    return id || `json-${ObjectUrlId()}`;
   };
 
   const [fileId] = useState(() => getFileId());
-  const [sessionId] = useState(() => `sess-${ObjectUrlId()}`);
 
+  // Setup Web Worker
+  useEffect(() => {
+    workerRef.current = new Worker(new URL('./worker.js', import.meta.url));
+    workerRef.current.onmessage = (e) => {
+      const { id, metrics, error } = e.data;
+      if (error) {
+        console.error('Worker error:', error);
+        return;
+      }
+      if (id === 'left') setLeftMetrics(metrics);
+      if (id === 'right') setRightMetrics(metrics);
+    };
+
+    return () => {
+      workerRef.current.terminate();
+    };
+  }, []);
+
+  // Recalculate metrics when content changes
+  useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({ id: 'left', text: leftContent, type: 'CALCULATE_METRICS' });
+    }
+  }, [leftContent]);
+
+  useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({ id: 'right', text: rightContent, type: 'CALCULATE_METRICS' });
+    }
+  }, [rightContent]);
+
+  // Resizing logic
   const handleMouseDown = (e) => {
     e.preventDefault();
     isDragging.current = true;
@@ -53,7 +95,6 @@ function App() {
     if (isDragging.current) {
       isDragging.current = false;
       document.body.style.cursor = 'default';
-      // Terminals resize observer triggers fit naturally, or we trigger global resize
       window.dispatchEvent(new Event('resize'));
     }
   }, []);
@@ -67,6 +108,7 @@ function App() {
     };
   }, [handleMouseMove, handleMouseUp]);
 
+  // Data Loading
   useEffect(() => {
     const loadInitialData = async () => {
       if (window.pluginAPI && fileId) {
@@ -85,9 +127,11 @@ function App() {
             }
 
             if (savedData && typeof savedData === 'object') {
-              if (savedData.commands && Array.isArray(savedData.commands)) setCommands(savedData.commands);
+              if (savedData.leftContent) setLeftContent(savedData.leftContent);
+              if (savedData.rightContent) setRightContent(savedData.rightContent);
               if (savedData.leftPaneWidth) setLeftPaneWidth(savedData.leftPaneWidth);
               if (savedData.theme) setTheme(savedData.theme);
+              if (savedData.isDiffMode !== undefined) setIsDiffMode(savedData.isDiffMode);
             }
           }
         } catch (err) {
@@ -100,17 +144,17 @@ function App() {
       }
     };
     
-    // Slight delay to ensure IPC is ready
     setTimeout(loadInitialData, 100);
   }, [fileId]);
 
+  // Auto Save
   const handleSave = useCallback(async () => {
     if (window.pluginAPI && window.pluginAPI.updateDocument && fileId && isDataLoaded) {
-      const payloadData = { commands, leftPaneWidth, theme };
+      const payloadData = { leftContent, rightContent, leftPaneWidth, theme, isDiffMode };
       const updatedContents = {
         version: "1.0.0",
         time: Date.now(),
-        blocks: [{ type: "promptly", data: payloadData }],
+        blocks: [{ type: "json-analyzer", data: payloadData }],
         parent_file: fileId,
         _id: contentDoc?._id,
       };
@@ -121,9 +165,8 @@ function App() {
         console.error('Save error:', err);
       }
     }
-  }, [commands, leftPaneWidth, theme, fileId, contentDoc, isDataLoaded]);
+  }, [leftContent, rightContent, leftPaneWidth, theme, isDiffMode, fileId, contentDoc, isDataLoaded]);
 
-  // Command binding for manual save (Cmd/Ctrl + S)
   useEffect(() => {
     const stopSave = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -135,7 +178,6 @@ function App() {
     return () => document.removeEventListener('keydown', stopSave);
   }, [handleSave]);
 
-  // Auto-save debounce effect
   const isInitialMount = useRef(true);
   useEffect(() => {
     if (isInitialMount.current) {
@@ -149,65 +191,71 @@ function App() {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [commands, leftPaneWidth, theme, handleSave, isDataLoaded]);
+  }, [leftContent, rightContent, leftPaneWidth, theme, isDiffMode, handleSave, isDataLoaded]);
 
-  const handleExportDS = () => {
-    try {
-      const payload = JSON.stringify({
-        _id: contentDoc?._id || `promptly-${Date.now()}`,
-        version: contentDoc?.version || 1,
-        time: Date.now(),
-        parent_file: fileId || "standalone-export",
-        blocks: [
-          {
-            type: "promptly",
-            data: { commands, leftPaneWidth }
-          }
-        ],
-        createdAt: contentDoc?.createdAt || Date.now(),
-        updatedAt: Date.now(),
-        fileType: "promptly"
-      }, null, 2);
+  // Actions
+  const handleFormat = () => {
+    setLeftContent(beautify(leftContent, false));
+    setRightContent(beautify(rightContent, false));
+  };
 
-      const blob = new Blob([payload], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const safeName = fileName ? fileName.split('.')[0] : 'export';
-      a.download = `${safeName}.ds`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+  const handleMinify = () => {
+    setLeftContent(minify(leftContent));
+    setRightContent(minify(rightContent));
+  };
 
-      if (window.pluginAPI && window.pluginAPI.notify) {
-        window.pluginAPI.notify("Exported successfully", "success");
-      }
-    } catch (err) {
-      console.error("Export failed:", err);
-      if (window.pluginAPI && window.pluginAPI.notify) {
-        window.pluginAPI.notify("Export failed", "error");
-      }
-    }
+  const handleSortKeys = () => {
+    setLeftContent(beautify(leftContent, true));
+    setRightContent(beautify(rightContent, true));
   };
 
   return (
     <div className={`App ${theme}`}>
-      <TopBar fileName={fileName} isReady={isReady} onExportDS={handleExportDS} theme={theme} setTheme={setTheme} />
+      <TopBar 
+        fileName={fileName} 
+        theme={theme} 
+        setTheme={setTheme} 
+        onFormat={handleFormat}
+        onMinify={handleMinify}
+        onSortKeys={handleSortKeys}
+        isDiffMode={isDiffMode}
+        setIsDiffMode={setIsDiffMode}
+        isInlineDiff={isInlineDiff}
+        setIsInlineDiff={setIsInlineDiff}
+      />
 
       <div className="workspace">
-        <Scratchpad 
-          commands={commands} 
-          setCommands={setCommands} 
-          sessionId={sessionId} 
-          leftPaneWidth={leftPaneWidth} 
-          ObjectUrlId={ObjectUrlId} 
-        />
-        
-        <div className="pane-resizer" onMouseDown={handleMouseDown}></div>
-        
-        <div className="right-pane" style={{ width: `${100 - leftPaneWidth}%`, flex: 'none' }}>
-          <TerminalView sessionId={sessionId} setIsReady={setIsReady} theme={theme} />
+        <div className="diff-mode-container" style={{ display: isDiffMode ? 'flex' : 'none' }}>
+          <DiffViewer 
+            theme={theme} 
+            original={leftContent} 
+            modified={rightContent} 
+            inline={isInlineDiff}
+          />
+        </div>
+
+        <div style={{ display: isDiffMode ? 'none' : 'flex', width: '100%', height: '100%' }}>
+          <div className="left-pane" style={{ width: `${leftPaneWidth}%`, padding: 0 }}>
+            <EditorPanel 
+              title="Original JSON" 
+              theme={theme} 
+              value={leftContent} 
+              onChange={(val) => setLeftContent(val || '')}
+              metrics={leftMetrics}
+            />
+          </div>
+          
+          <div className="pane-resizer" onMouseDown={handleMouseDown}></div>
+          
+          <div className="right-pane" style={{ width: `${100 - leftPaneWidth}%`, padding: 0, flex: 'none' }}>
+            <EditorPanel 
+              title="Modified JSON" 
+              theme={theme} 
+              value={rightContent} 
+              onChange={(val) => setRightContent(val || '')}
+              metrics={rightMetrics}
+            />
+          </div>
         </div>
       </div>
     </div>
