@@ -9,7 +9,7 @@ function App() {
   const ObjectUrlId = () => Math.random().toString(36).substr(2, 9);
   
   const [fileName, setFileName] = useState('Compare Tool');
-  const [theme, setTheme] = useState('dark-theme');
+  const [theme, setTheme] = useState('light-theme');
   const [leftPaneWidth, setLeftPaneWidth] = useState(50);
   const isDragging = useRef(false);
 
