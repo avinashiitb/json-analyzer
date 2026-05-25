@@ -9,6 +9,7 @@ function App() {
   const ObjectUrlId = () => Math.random().toString(36).substr(2, 9);
   
   const [fileName, setFileName] = useState('Compare Tool');
+  const [breadcrumbs, setBreadcrumbs] = useState([]);
   const [theme, setTheme] = useState('light-theme');
   const [leftPaneWidth, setLeftPaneWidth] = useState(50);
   const isDragging = useRef(false);
@@ -116,6 +117,19 @@ function App() {
           const fileInfo = await window.pluginAPI.getFileDetailsById(fileId);
           if (fileInfo && fileInfo.title) setFileName(fileInfo.title);
 
+          // Fetch breadcrumb path
+          if (window.pluginAPI.getNestedPath) {
+            window.pluginAPI.getNestedPath({ fileId }).then((result) => {
+              if (result) {
+                const segs = [
+                  ...result.folders.map((f) => ({ label: f.name, isFile: false })),
+                  ...(result.file ? [{ label: result.file.title, isFile: true }] : []),
+                ];
+                setBreadcrumbs(segs);
+              }
+            }).catch(() => {});
+          }
+
           const data = await window.pluginAPI.getDocumentsByParentFile(fileId);
           if (data && data.length > 0) {
             const document = data[0];
@@ -212,6 +226,7 @@ function App() {
   return (
     <div className={`App ${theme}`}>
       <TopBar 
+        breadcrumbs={breadcrumbs}
         fileName={fileName} 
         theme={theme} 
         setTheme={setTheme} 

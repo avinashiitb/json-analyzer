@@ -1,7 +1,11 @@
 import React from 'react';
 
-function TopBar({ fileName, theme, setTheme, onFormat, onMinify, onSortKeys, isDiffMode, setIsDiffMode, isInlineDiff, setIsInlineDiff }) {
+function TopBar({ breadcrumbs = [], fileName, theme, setTheme, onFormat, onMinify, onSortKeys, isDiffMode, setIsDiffMode, isInlineDiff, setIsInlineDiff }) {
   const isLight = theme === 'light-theme';
+
+  const displaySegments = breadcrumbs.length > 0
+    ? breadcrumbs
+    : [{ label: fileName || 'Compare Tool', isFile: true }];
   
   const buttonStyle = {
     display: "flex",
@@ -27,15 +31,26 @@ function TopBar({ fileName, theme, setTheme, onFormat, onMinify, onSortKeys, isD
   return (
     <header className="terminal-topbar">
       <div className="topbar-left">
-        <div className="editor-label">
-          <i className="ri-braces-line"></i>
-          <span>JSON Analyzer</span>
-        </div>
-        <div className="vertical-divider"></div>
-        <div className="file-info">
-          <i className="ri-file-code-line file-type-icon"></i>
-          <span className="file-name">{fileName || 'Compare Tool'}</span>
-        </div>
+        <nav className="breadcrumb-path" aria-label="file path">
+          <i className="fa-solid fa-folder" style={{ marginRight: 6, fontSize: 11, opacity: 0.8 }}></i>
+          {displaySegments.map((seg, idx) => (
+            <React.Fragment key={idx}>
+              {!seg.isFile && (
+                <>
+                  <span className="breadcrumb-segment breadcrumb-folder" title={seg.label}>
+                    {seg.label}
+                  </span>
+                  <span className="breadcrumb-sep">›</span>
+                </>
+              )}
+              {seg.isFile && (
+                <span className="breadcrumb-segment breadcrumb-file" title={seg.label}>
+                  {seg.label}
+                </span>
+              )}
+            </React.Fragment>
+          ))}
+        </nav>
       </div>
       
       <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

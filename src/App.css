@@ -160,3 +160,51 @@ html {
 .light-theme .pane-resizer::after {
   color: #9ca3af;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   BREADCRUMB PATH — shared DevScribe style
+   ═══════════════════════════════════════════════════════════════ */
+.breadcrumb-path {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  font-size: 12px;
+  overflow: visible;
+  flex-wrap: nowrap;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.breadcrumb-segment {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.breadcrumb-folder {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.breadcrumb-file {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.breadcrumb-sep {
+  color: #9ca3af;
+  opacity: 0.5;
+  margin: 0 4px;
+  font-size: 13px;
+  user-select: none;
+}
+
+.light-theme .breadcrumb-folder { color: #9ca3af; }
+.light-theme .breadcrumb-file   { color: #111827; }
+.dark-theme  .breadcrumb-folder { color: #6b7280; }
+.dark-theme  .breadcrumb-file   { color: #e5e7eb; }
+.dark-theme  .breadcrumb-sep    { color: #6b7280; }
