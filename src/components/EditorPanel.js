@@ -3,7 +3,7 @@ import Editor from '@monaco-editor/react';
 import StatsPanel from './StatsPanel';
 import './EditorPanel.css';
 
-const EditorPanel = ({ title, value, onChange, theme, language = 'json', metrics }) => {
+const EditorPanel = ({ title, value, onChange, theme, language = 'json', metrics, readOnly = false }) => {
   const monacoTheme = theme === 'dark-theme' ? 'vs-dark' : 'light';
 
   return (
@@ -17,7 +17,7 @@ const EditorPanel = ({ title, value, onChange, theme, language = 'json', metrics
           language={language}
           theme={monacoTheme}
           value={value}
-          onChange={onChange}
+          onChange={readOnly ? undefined : onChange}
           options={{
             minimap: { enabled: false },
             wordWrap: 'on',
@@ -25,6 +25,7 @@ const EditorPanel = ({ title, value, onChange, theme, language = 'json', metrics
             formatOnPaste: true,
             automaticLayout: true,
             tabSize: 2,
+            readOnly: readOnly,
           }}
         />
       </div>

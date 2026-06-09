@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import './App.css';
 import TopBar from './components/TopBar';
 import EditorPanel from './components/EditorPanel';
@@ -13,6 +13,71 @@ function App() {
   const [theme, setTheme] = useState('light-theme');
   const [leftPaneWidth, setLeftPaneWidth] = useState(50);
   const isDragging = useRef(false);
+
+  const isPreview = useMemo(() => {
+    try {
+      const url = new URL(window.location.href);
+      let p = url.searchParams.get("preview");
+      if (!p && window.location.hash.includes("?")) {
+        const hashParams = new URLSearchParams(window.location.hash.split("?")[1]);
+        p = hashParams.get("preview");
+      }
+      return p === "true";
+    } catch (e) {
+      return false;
+    }
+  }, []);
+
+  // Listen for initial load and messages in preview mode
+  useEffect(() => {
+    if (!isPreview) return;
+
+    const handleMessage = (e) => {
+      if (!e.data) return;
+
+      if (e.data.type === 'LOAD_PREVIEW') {
+        const savedData = e.data.data;
+        let calculatedHeight = 200;
+        if (savedData && typeof savedData === 'object') {
+          if (savedData.leftContent) setLeftContent(savedData.leftContent);
+          if (savedData.rightContent) setRightContent(savedData.rightContent);
+          if (savedData.leftPaneWidth) setLeftPaneWidth(savedData.leftPaneWidth);
+          if (savedData.theme) setTheme(savedData.theme);
+          if (savedData.isDiffMode !== undefined) setIsDiffMode(savedData.isDiffMode);
+
+          // Calculate height of Monaco editors based on lines count
+          const left = savedData.leftContent || '';
+          const right = savedData.rightContent || '';
+          const isDiff = savedData.isDiffMode || false;
+
+          const leftLines = left.split('\n').length;
+          const rightLines = right.split('\n').length;
+          // In diff mode, add a spacer multiplier to account for layout spacer alignments
+          const linesCount = isDiff 
+            ? Math.max(leftLines, rightLines) * 1.3 
+            : Math.max(leftLines, rightLines);
+
+          const textHeight = linesCount * 19;
+          // Min height 200px, max height 800px
+          calculatedHeight = Math.min(Math.max(textHeight + 110, 200), 800);
+        }
+        setIsDataLoaded(true);
+        // Report calculated height of preview to parent frame
+        window.parent.postMessage({ type: 'RESIZE_PREVIEW', height: calculatedHeight }, '*');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    window.parent.postMessage({ type: 'PREVIEW_READY' }, '*');
+
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isPreview]);
+
+  // Report height of preview to parent frame
+  useEffect(() => {
+    if (!isPreview) return;
+    window.parent.postMessage({ type: 'RESIZE_PREVIEW', height: 200 }, '*');
+  }, [isPreview]);
 
   // Editor states
   const [leftContent, setLeftContent] = useState('{\n  "example": "paste JSON here"\n}');
@@ -112,6 +177,7 @@ function App() {
   // Data Loading
   useEffect(() => {
     const loadInitialData = async () => {
+      if (isPreview) return; // Skip standard loading in preview mode
       if (window.pluginAPI && fileId) {
         try {
           const fileInfo = await window.pluginAPI.getFileDetailsById(fileId);
@@ -163,6 +229,7 @@ function App() {
 
   // Auto Save
   const handleSave = useCallback(async () => {
+    if (isPreview) return; // Skip saving in preview mode
     if (window.pluginAPI && window.pluginAPI.updateDocument && fileId && isDataLoaded) {
       const payloadData = { leftContent, rightContent, leftPaneWidth, theme, isDiffMode };
       const updatedContents = {
@@ -182,6 +249,7 @@ function App() {
   }, [leftContent, rightContent, leftPaneWidth, theme, isDiffMode, fileId, contentDoc, isDataLoaded]);
 
   useEffect(() => {
+    if (isPreview) return;
     const stopSave = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
@@ -194,6 +262,7 @@ function App() {
 
   const isInitialMount = useRef(true);
   useEffect(() => {
+    if (isPreview) return; // Skip auto-save in preview mode
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
@@ -224,20 +293,22 @@ function App() {
   };
 
   return (
-    <div className={`App ${theme}`}>
-      <TopBar 
-        breadcrumbs={breadcrumbs}
-        fileName={fileName} 
-        theme={theme} 
-        setTheme={setTheme} 
-        onFormat={handleFormat}
-        onMinify={handleMinify}
-        onSortKeys={handleSortKeys}
-        isDiffMode={isDiffMode}
-        setIsDiffMode={setIsDiffMode}
-        isInlineDiff={isInlineDiff}
-        setIsInlineDiff={setIsInlineDiff}
-      />
+    <div className={`App ${theme} ${isPreview ? 'preview-mode' : ''}`}>
+      {!isPreview && (
+        <TopBar 
+          breadcrumbs={breadcrumbs}
+          fileName={fileName} 
+          theme={theme} 
+          setTheme={setTheme} 
+          onFormat={handleFormat}
+          onMinify={handleMinify}
+          onSortKeys={handleSortKeys}
+          isDiffMode={isDiffMode}
+          setIsDiffMode={setIsDiffMode}
+          isInlineDiff={isInlineDiff}
+          setIsInlineDiff={setIsInlineDiff}
+        />
+      )}
 
       <div className="workspace">
         <div className="diff-mode-container" style={{ display: isDiffMode ? 'flex' : 'none' }}>
@@ -257,10 +328,12 @@ function App() {
               value={leftContent} 
               onChange={(val) => setLeftContent(val || '')}
               metrics={leftMetrics}
+              readOnly={isPreview}
             />
           </div>
           
-          <div className="pane-resizer" onMouseDown={handleMouseDown}></div>
+          {!isPreview && <div className="pane-resizer" onMouseDown={handleMouseDown}></div>}
+          {isPreview && <div style={{ width: '1px', backgroundColor: theme === 'dark-theme' ? '#404040' : '#e5e7eb' }}></div>}
           
           <div className="right-pane" style={{ width: `${100 - leftPaneWidth}%`, padding: 0, flex: 'none' }}>
             <EditorPanel 
@@ -269,6 +342,7 @@ function App() {
               value={rightContent} 
               onChange={(val) => setRightContent(val || '')}
               metrics={rightMetrics}
+              readOnly={isPreview}
             />
           </div>
         </div>

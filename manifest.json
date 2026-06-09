@@ -1,6 +1,6 @@
 {
   "id": "json",
-  "name": "JSON Analyzer",
+  "name": "JSON",
   "version": "1.0.0",
   "description": "An interactive JSON analyzer, beautifier, and diffing tool.",
   "fileType": "json",
