@@ -8,5 +8,6 @@
   "entry": "/build/index.html",
   "icon": "build/Icons.svg",
   "preview": true,
-  "core-plugin": true
+  "core-plugin": true,
+  "color": "yellow"
 }
