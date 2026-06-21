@@ -126,25 +126,25 @@ html {
 
 /* Light Theme Overrides */
 .light-theme {
-  background-color: #ffffff;
-  color: #111827;
+  background-color: #f2f4f8;
+  color: #161b24;
 }
 
 .light-theme .terminal-topbar {
   background-color: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgba(15,23,42,0.07);
 }
 
 .light-theme .editor-label {
-  color: #4b5563;
+  color: #5b6678;
 }
 
 .light-theme .vertical-divider {
-  background-color: #d1d5db;
+  background-color: rgba(15,23,42,0.07);
 }
 
 .light-theme .file-info {
-  color: #374151;
+  color: #161b24;
 }
 
 .light-theme .workspace {
@@ -152,13 +152,13 @@ html {
 }
 
 .light-theme .pane-resizer {
-  background-color: #e5e7eb;
-  border-left-color: #f3f4f6;
-  border-right-color: #d1d5db;
+  background-color: #eef1f7;
+  border-left-color: rgba(15,23,42,0.07);
+  border-right-color: rgba(15,23,42,0.12);
 }
 
 .light-theme .pane-resizer::after {
-  color: #9ca3af;
+  color: #9aa4b5;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -203,8 +203,39 @@ html {
   user-select: none;
 }
 
-.light-theme .breadcrumb-folder { color: #9ca3af; }
-.light-theme .breadcrumb-file   { color: #111827; }
-.dark-theme  .breadcrumb-folder { color: #6b7280; }
-.dark-theme  .breadcrumb-file   { color: #e5e7eb; }
-.dark-theme  .breadcrumb-sep    { color: #6b7280; }
+.light-theme .breadcrumb-folder { color: #5b6678; }
+.light-theme .breadcrumb-file   { color: #161b24; }
+.light-theme .breadcrumb-sep    { color: #9aa4b5; }
+
+/* Dark Theme Overrides - Promptly Palette Sync */
+.dark-theme {
+  background-color: #1f1f1f !important;
+  color: #ededed;
+  --bg-primary: #1f1f1f;
+  --bg-secondary: #262626;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-color: #ededed;
+  --text-muted: #9a9a9a;
+  --text-highlight: #3D6FE0;
+  --accent: color-mix(in oklab, #3D6FE0 88%, #ffffff);
+  --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.dark-theme .terminal-topbar {
+  background-color: #1a1a1a !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark-theme .workspace {
+  background-color: #1f1f1f !important;
+}
+
+.dark-theme .pane-resizer {
+  background-color: #262626 !important;
+  border-left-color: rgba(255, 255, 255, 0.08) !important;
+  border-right-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark-theme .breadcrumb-folder { color: #9a9a9a; }
+.dark-theme .breadcrumb-file   { color: #ededed; }
+.dark-theme .breadcrumb-sep    { color: #6a6a6a; }

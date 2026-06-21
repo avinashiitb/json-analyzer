@@ -11,11 +11,11 @@ function TopBar({ breadcrumbs = [], fileName, theme, setTheme, onFormat, onMinif
     display: "flex",
     alignItems: "center",
     padding: "6px 12px",
-    backgroundColor: isLight ? "#ffffff" : "#2d2d2d",
-    border: `1px solid ${isLight ? "#e5e7eb" : "#404040"}`,
+    backgroundColor: isLight ? "#ffffff" : "var(--bg-secondary)",
+    border: `1px solid ${isLight ? "#e5e7eb" : "var(--border-color)"}`,
     borderRadius: "6px",
     fontSize: "12px",
-    color: isLight ? "#374151" : "#e5e7eb",
+    color: isLight ? "#374151" : "var(--text-color)",
     cursor: "pointer",
     fontWeight: 500,
     gap: "6px",
@@ -23,9 +23,9 @@ function TopBar({ breadcrumbs = [], fileName, theme, setTheme, onFormat, onMinif
 
   const activeButtonStyle = {
     ...buttonStyle,
-    backgroundColor: isLight ? "#e0e7ff" : "#3730a3",
-    borderColor: isLight ? "#818cf8" : "#4f46e5",
-    color: isLight ? "#3730a3" : "#e0e7ff",
+    backgroundColor: isLight ? "var(--accent-soft, #e0e7ff)" : "var(--accent-soft)",
+    borderColor: isLight ? "var(--accent, #818cf8)" : "var(--accent)",
+    color: isLight ? "var(--accent, #3730a3)" : "var(--accent)",
   };
 
   return (
@@ -87,25 +87,6 @@ function TopBar({ breadcrumbs = [], fileName, theme, setTheme, onFormat, onMinif
           </button>
         )}
 
-        <div className="vertical-divider"></div>
-
-        <button 
-          onClick={() => setTheme(isLight ? 'dark-theme' : 'light-theme')}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: isLight ? '#374151' : '#e5e7eb',
-            cursor: 'pointer',
-            padding: '6px',
-            fontSize: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          title={isLight ? "Switch to Dark Theme" : "Switch to Light Theme"}
-        >
-          <i className={isLight ? "ri-moon-line" : "ri-sun-line"}></i>
-        </button>
       </div>
     </header>
   );
